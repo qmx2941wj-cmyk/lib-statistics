@@ -108,6 +108,7 @@
   .status-table td, .status-table th{font-size:11.5px;padding:5px 4px;}
   .dot{display:inline-block;width:9px;height:9px;border-radius:50%;}
   .dot.on{background:var(--ok);}
+  .dot.carry{background:var(--warn);}
   .dot.off{background:#d8d8db;}
 
 
@@ -268,7 +269,7 @@
           <div class="upload-head"><span class="upload-title">① 소장자료 현황 — 단행본</span><span class="badge muted" id="badge-mono">미입력</span></div>
           <ol class="upload-guide">
             <li>DLS 상단 메뉴 <b>통계 → 관리통계 → 자료분류</b></li>
-            <li>기간 단위를 <b>월별</b>로 선택 (시작·종료 월은 결과에 영향 없음 — 이 화면은 항상 <b>지금 이 순간</b>의 누적 소장수만 보여줍니다)</li>
+            <li>기간 단위를 <b>월별</b>로, 시작 <b>3월</b> ~ 종료 <b>이번 달</b>로 넓게 선택 (구입·제적폐기 등 <b>변화가 있었던 달만</b> 값이 생성되며, 변화가 없었던 달은 결과에 나타나지 않습니다 — 이 프로그램이 이전 최신 값으로 자동으로 이어서 채웁니다)</li>
             <li>오른쪽 자료구분에서 <b>단행본</b> 선택 → 검색</li>
             <li>표 아래 오른쪽 <b>반출</b> 버튼 클릭 → 파일 저장</li>
           </ol>
@@ -280,7 +281,7 @@
           <div class="upload-head"><span class="upload-title">② 소장자료 현황 — 비도서</span><span class="badge muted" id="badge-nonbook">미입력</span></div>
           <ol class="upload-guide">
             <li>DLS 상단 메뉴 <b>통계 → 관리통계 → 자료분류</b></li>
-            <li>기간 단위를 <b>월별</b>로 선택 (시작·종료 월은 결과에 영향 없음 — 이 화면은 항상 <b>지금 이 순간</b>의 누적 소장수만 보여줍니다)</li>
+            <li>기간 단위를 <b>월별</b>로, 시작 <b>3월</b> ~ 종료 <b>이번 달</b>로 넓게 선택 (구입·제적폐기 등 <b>변화가 있었던 달만</b> 값이 생성되며, 변화가 없었던 달은 결과에 나타나지 않습니다 — 이 프로그램이 이전 최신 값으로 자동으로 이어서 채웁니다)</li>
             <li>오른쪽 자료구분에서 <b>비도서</b> 선택 → 검색</li>
             <li>표 아래 오른쪽 <b>반출</b> 버튼 클릭 → 파일 저장</li>
           </ol>
@@ -312,7 +313,7 @@
         </div>
 
       </div>
-      <p class="note">참고: 소장자료(관리통계) 파일은 "현재 시점의 누적 소장수"만 담겨 있고(기간을 아무리 넓게 잡아도 결과는 1개월치뿐), 지난달 것을 지금 다시 반출해도 지난달 값으로 되돌아가지 않습니다. 그래서 <b>매달 빠짐없이 그 달에 반출해서 업로드</b>해두는 것이 정확한 월별 기록을 남기는 유일한 방법입니다.</p>
+      <p class="note">참고: 소장자료(관리통계) 반출 파일에는 <b>구입·제적폐기 등 변화가 있었던 달만</b> 값이 담겨 있습니다. 변화가 없었던 달은 파일에 나타나지 않으며, 이 경우 이 프로그램이 이전 최신 값을 그 달 값으로 자동으로 이어서 씁니다(그 달 증가분은 0으로 처리). 그래서 반출할 때 <b>기간을 3월부터 이번 달까지 넓게</b> 잡아두면, 그 사이 변화가 있었던 모든 달의 값을 한 파일로 한 번에 올릴 수 있습니다.</p>
     </div>
 
     <div class="tab-panel" id="tab-manual" hidden>
@@ -393,7 +394,8 @@
       <div class="table-scroll">
         <table class="status-table" id="statusTable"></table>
       </div>
-      <p class="note">✓은 해당 월의 자료가 있다는 뜻이며, 실제 값이 맞는지까지 확인해주지는 않습니다. 빈칸(●)이 있으면 그 달은 누계 계산에서 제외됩니다.</p>
+      <p class="note">초록 점은 해당 월의 자료가 있다는 뜻이며, 실제 값이 맞는지까지 확인해주지는 않습니다. 회색 빈칸이 있으면 그 달은 자료가 없어 누계 계산에서 제외됩니다.
+      단행본·비도서 열의 <b>주황 점</b>은 그 달에 새로 반출한 값은 없지만 구입·제적폐기 등 변화가 없었던 달이라 이전 최신 값을 그대로 이어서 쓰고 있다는 뜻으로, 정상 상태입니다.</p>
     </div>
   </div>
 
@@ -604,10 +606,20 @@ const sumArr = a => a.reduce((s,v)=>s+(v||0),0);
 const addArr = (a,b) => a.map((v,i)=>v+(b[i]||0));
 const NULL11 = Array(11).fill(null);
 const NULL10 = Array(10).fill(null);
+const ZERO11 = Array(11).fill(0);
+
+// 소장자료(관리통계) 반출 파일은 구입·제적폐기 등 "변화가 있었던 달"만 값이 생성되고,
+// 변화가 없었던 달은 파일에 아예 나타나지 않는다(DLS 쪽 특성). 그런 달은 그 시점 소장수가
+// 최근 값 그대로 유지되는 것이므로, ym 이전(포함)에서 가장 최근 기록을 찾아 이어서 쓴다.
+function latestOnOrBefore(store, ym){
+  const keys = Object.keys(store).filter(k=>k<=ym).sort();
+  return keys.length ? store[keys[keys.length-1]] : null;
+}
 
 function findMissing(months){
+  const noBaseline = (store,k) => !store[k] && !latestOnOrBefore(store,k);
   return {
-    관리통계: months.filter(k=>!MONO[k] || !NONBOOK[k]),
+    관리통계: months.filter(k=> noBaseline(MONO,k) || noBaseline(NONBOOK,k)),
     대출: months.filter(k=>!LOAN_USER[k] || !LOAN_SUBJ[k]),
     기타입력: months.filter(k=>!ETC[k]),
   };
@@ -619,10 +631,14 @@ function calc(ym){
   const missing = findMissing(months);
 
   const monoY = MONO[ym], nbY = NONBOOK[ym];
-  const 장서_월계_도서 = monoY ? monoY.증분 : NULL11;
-  const 장서_월계_비도서 = nbY ? nbY.증분 : NULL11;
-  const 장서_누계_도서 = monoY ? monoY.소장수 : NULL11;
-  const 장서_누계_비도서 = nbY ? nbY.소장수 : NULL11;
+  const monoCF = monoY || latestOnOrBefore(MONO, ym);
+  const nbCF = nbY || latestOnOrBefore(NONBOOK, ym);
+  // 이번 달 값이 직접 없어도 이전 값(monoCF/nbCF)이 있으면 변화가 없었던 것으로 보아
+  // 월계(증분)는 0, 누계(소장수)는 이전 값을 그대로 이어서 쓴다. 이전 값조차 없으면 진짜 데이터 없음(null).
+  const 장서_월계_도서 = monoY ? monoY.증분 : (monoCF ? ZERO11 : NULL11);
+  const 장서_월계_비도서 = nbY ? nbY.증분 : (nbCF ? ZERO11 : NULL11);
+  const 장서_누계_도서 = monoCF ? monoCF.소장수 : NULL11;
+  const 장서_누계_비도서 = nbCF ? nbCF.소장수 : NULL11;
 
   const lu = LOAN_USER[ym];
   const etcY = ETC[ym];
@@ -822,10 +838,14 @@ function renderStatusTable(){
   const dataMonths = allDataMonths().filter(k=>schoolYearOfMonth(k)===sy);
   const allMonths = Array.from(new Set([...schoolYearMonths(sy), ...dataMonths])).sort();
   const dot = on => `<span class="dot ${on?'on':'off'}"></span>`;
+  const dotMono = (store,k) => {
+    const state = store[k] ? 'on' : (latestOnOrBefore(store,k) ? 'carry' : 'off');
+    return `<span class="dot ${state}"></span>`;
+  };
   let html = `<thead><tr><th>월</th><th>단행본</th><th>비도서</th><th>대출-이용자별</th><th>대출-주제별</th><th>수기입력</th></tr></thead><tbody>`;
   allMonths.forEach(k=>{
     html += `<tr><th>${k}</th>
-      <td>${dot(!!MONO[k])}</td><td>${dot(!!NONBOOK[k])}</td>
+      <td>${dotMono(MONO,k)}</td><td>${dotMono(NONBOOK,k)}</td>
       <td>${dot(!!LOAN_USER[k])}</td><td>${dot(!!LOAN_SUBJ[k])}</td>
       <td>${dot(!!ETC[k])}</td></tr>`;
   });
