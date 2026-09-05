@@ -227,6 +227,12 @@
     나머지는 자동으로 계산되어 학교도서관 통계대장 서식 그대로 출력됩니다. 업로드한 파일과 입력한 내용은 서버로 전송되지 않고
     이 브라우저 안에서만 처리됩니다.
   </p>
+  <p class="note no-print" style="margin:-14px 0 20px;">
+    <span class="badge ok">🔒 서버 전송 없음</span>
+    이 페이지는 백엔드(서버) 없이 동작하는 순수 정적 파일이며, 업로드·입력한 내용은 어떤 외부 서버로도 전송되지 않고 이 브라우저의
+    메모리·로컬 저장소 안에서만 계산·보관됩니다. 브라우저 개발자도구(F12) → <b>네트워크(Network)</b> 탭을 열어둔 채 파일을 업로드해보면,
+    통계 계산용 라이브러리(xlsx, exceljs)를 처음 불러올 때 외에는 어떤 데이터 전송 요청도 발생하지 않는다는 것을 직접 확인할 수 있습니다.
+  </p>
 
   <!-- ===================== STEP 1: 데이터 입력 ===================== -->
   <div class="panel no-print">
@@ -254,6 +260,8 @@
 
     <div class="tab-panel" id="tab-upload">
       <p class="note" style="margin-top:0;">아래 4개는 각각 <b>다른 화면</b>에서 반출해야 하는 별개 파일입니다. 반출된 파일을 열어 고치지 말고 그대로 업로드하세요(엑셀 .xlsx만 지원).</p>
+      <p class="note">🔒 <b>개인정보 자동 필터링:</b> 이 프로그램은 업로드한 파일에서 학년·구분별 <b>합계 수치</b>만 골라 읽으며, 그 외의 열(이름·학번 등이 있어도)은 애초에 읽지 않습니다.
+      혹시 파일에 이름·학번·생년월일 등 개인정보로 보이는 열 제목이 있으면 업로드 직후 메시지에 "무시됨"으로 표시해 알려드립니다. 읽은 값은 이 브라우저에만 저장되며 서버로 전송되지 않습니다.</p>
       <div class="upload-grid">
 
         <div class="upload-slot">
@@ -398,6 +406,7 @@
       <button class="print-btn" id="printBtn">인쇄 미리보기 (A4 가로, 1장)</button>
       <button class="ghost-btn" id="xlsxStyledBtn">엑셀 저장 (서식 포함)</button>
       <button class="ghost-btn" id="xlsxPlainBtn">엑셀 저장 (값만)</button>
+      <button class="ghost-btn danger" id="reportBtn" type="button">⚠ 오류 신고 / 개선 제안</button>
     </div>
     <p class="note" style="margin-top:6px;margin-bottom:0;">인쇄는 <b>A4 가로 1장</b> 고정입니다. 인쇄 대화상자에서 "배경 그래픽"을 켜야 노란 음영이 함께 나옵니다.
     엑셀 저장은 두 가지입니다 — <b>서식 포함</b>은 셀 병합·테두리(실선/점선/이중선)·노란 음영·열 폭·인쇄 설정까지 통계대장 모양 그대로 만들고(인터넷 연결 필요),
@@ -481,7 +490,8 @@
       "예시 데이터로 미리보기"의 숫자는 실제 학교 자료가 아니라 화면 확인용으로 임의로 만든 값이며, "전체 초기화"로 언제든 지울 수 있습니다.
     </p>
     <p style="margin:0;padding-top:10px;border-top:1px solid var(--line);">
-      문의 및 개선 제안 &nbsp;<a href="mailto:peri_paella54@icloud.com" style="color:var(--accent);font-weight:600;text-decoration:none;">peri_paella54@icloud.com</a>
+      데이터 오류를 발견하셨다면 위 "②기준월 선택 및 출력" 영역의 <b>⚠ 오류 신고 / 개선 제안</b> 버튼을 누르면 학년도·기준월 정보가 자동으로 채워진 메일 양식이 열립니다.
+      그 외 문의 및 개선 제안 &nbsp;<a href="mailto:peri_paella54@icloud.com" style="color:var(--accent);font-weight:600;text-decoration:none;">peri_paella54@icloud.com</a>
     </p>
   </footer>
 </div>
@@ -1120,6 +1130,21 @@ function parseLoanSubjReport(rows){
   return result;
 }
 
+// 개인정보로 보이는 열 제목을 탐지(실제 계산에는 알려진 통계 항목명만 쓰이므로 이런 열이 있어도
+// 애초에 읽히지 않지만, 업로드한 파일에 그런 열이 있었다는 사실을 사용자에게 투명하게 알려주기 위함).
+const PII_PATTERNS = [/이름/, /성명/, /학번/, /생년월일/, /연락처/, /전화/, /휴대\s*폰/, /주소/, /이메일/, /e-?mail/i];
+function scanPiiColumns(rows){
+  const found = new Set();
+  const limit = Math.min(rows.length, 20);
+  for (let i=0;i<limit;i++){
+    (rows[i]||[]).forEach(v=>{
+      const s = String(v??'').trim();
+      if (s && PII_PATTERNS.some(re=>re.test(s))) found.add(s);
+    });
+  }
+  return Array.from(found);
+}
+
 function wireUpload(fileId, msgId, badgeId, handler){
   document.getElementById(fileId).addEventListener('change', async (ev)=>{
     const file = ev.target.files[0];
@@ -1130,9 +1155,12 @@ function wireUpload(fileId, msgId, badgeId, handler){
     try{
       const buf = await file.arrayBuffer();
       const rows = toRows(buf);
+      const piiCols = scanPiiColumns(rows);
       const monthsTouched = handler(rows);
       msgEl.className = 'parse-msg ok';
-      msgEl.textContent = `✓ ${file.name} — ${monthsTouched.length}개월(${monthsTouched.join(', ')}) 반영됨`;
+      let msg = `✓ ${file.name} — ${monthsTouched.length}개월(${monthsTouched.join(', ')}) 반영됨`;
+      if (piiCols.length) msg += ` · 개인정보로 보이는 열(${piiCols.join(', ')})은 읽지 않고 무시했습니다.`;
+      msgEl.textContent = msg;
       badgeEl.className = 'badge ok'; badgeEl.textContent = `${monthsTouched.length}개월 입력됨`;
       rebuildBaseMonthOptions();
       render();
@@ -1548,6 +1576,21 @@ document.getElementById('schoolYear').addEventListener('change', ()=>{
 document.getElementById('loadDemoBtn').addEventListener('click', loadDemoData);
 document.getElementById('resetAllBtn').addEventListener('click', resetAllData);
 document.getElementById('printBtn').addEventListener('click', printLedger);
+document.getElementById('reportBtn').addEventListener('click', ()=>{
+  const sy = document.getElementById('schoolYear').value || '(미선택)';
+  const ym = document.getElementById('baseMonth').value || '(미선택)';
+  const subject = encodeURIComponent('[학교도서관 통계대장] 오류/개선 제안');
+  const body = encodeURIComponent(
+`아래 내용을 채워 보내주시면 확인하는 데 도움이 됩니다.
+
+- 학년도 / 기준월: ${sy}학년도 / ${ym}
+- 어떤 화면·항목에서 발생했나요:
+- 예상한 값 / 실제로 나온 값:
+- 재현 방법(어떤 파일을 업로드했는지, 어떤 순서로 조작했는지 등):
+
+(이 메일에는 실제 학생 이름·학번 등 개인정보를 적지 말아주세요.)`);
+  window.location.href = `mailto:peri_paella54@icloud.com?subject=${subject}&body=${body}`;
+});
 document.getElementById('xlsxStyledBtn').addEventListener('click', ()=>{ exportExcelStyled().catch(e=>alert('엑셀 저장 실패: '+e.message)); });
 document.getElementById('xlsxPlainBtn').addEventListener('click', ()=>{ try{ exportExcelPlain(); }catch(e){ alert('엑셀 저장 실패: '+e.message); } });
 document.getElementById('saveJsonBtn').addEventListener('click', saveJsonFile);
