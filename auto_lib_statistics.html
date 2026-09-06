@@ -222,7 +222,7 @@
 </head>
 <body>
 <div class="wrap">
-  <h1 class="no-print">학교도서관 통계대장 자동계산</h1>
+  <h1 class="no-print">학교도서관 통계대장 자동계산 <span style="font-size:11px;font-weight:400;color:var(--sub);vertical-align:middle;">v1.0</span></h1>
   <p class="desc no-print">
     독서로DLS에서 내려받은 반출 파일을 업로드하고, DLS에 없는 항목(활용수업·행사·자원봉사·기타업무 등)만 직접 입력하면
     나머지는 자동으로 계산되어 학교도서관 통계대장 서식 그대로 출력됩니다. 업로드한 파일과 입력한 내용은 서버로 전송되지 않고
@@ -490,10 +490,6 @@
       데이터와 환경설정은 이 브라우저(로컬 저장소)에 자동 저장됩니다. 다른 PC로 옮기거나 백업하려면 "설정·입력값 저장(JSON)"을 이용하세요.
       반올림은 엑셀 <code>ROUND()</code>와 같은 사사오입(0.5는 항상 올림)입니다.
       "예시 데이터로 미리보기"의 숫자는 실제 학교 자료가 아니라 화면 확인용으로 임의로 만든 값이며, "전체 초기화"로 언제든 지울 수 있습니다.
-    </p>
-    <p style="margin:0;padding-top:10px;border-top:1px solid var(--line);">
-      데이터 오류를 발견하셨다면 위 "②기준월 선택 및 출력" 영역의 <b>⚠ 오류 신고 / 개선 제안</b> 버튼을 누르면 학년도·기준월 정보가 자동으로 채워진 메일 양식이 열립니다.
-      그 외 문의 및 개선 제안 &nbsp;<a href="mailto:peri_paella54@icloud.com" style="color:var(--accent);font-weight:600;text-decoration:none;">peri_paella54@icloud.com</a>
     </p>
   </footer>
 </div>
@@ -1609,7 +1605,7 @@ document.getElementById('reportBtn').addEventListener('click', ()=>{
 - 재현 방법(어떤 파일을 업로드했는지, 어떤 순서로 조작했는지 등):
 
 (이 메일에는 실제 학생 이름·학번 등 개인정보를 적지 말아주세요.)`);
-  window.location.href = `mailto:peri_paella54@icloud.com?subject=${subject}&body=${body}`;
+  window.location.href = `mailto:hearth_indoor.5j@icloud.com?subject=${subject}&body=${body}`;
 });
 document.getElementById('xlsxStyledBtn').addEventListener('click', ()=>{ exportExcelStyled().catch(e=>alert('엑셀 저장 실패: '+e.message)); });
 document.getElementById('xlsxPlainBtn').addEventListener('click', ()=>{ try{ exportExcelPlain(); }catch(e){ alert('엑셀 저장 실패: '+e.message); } });
