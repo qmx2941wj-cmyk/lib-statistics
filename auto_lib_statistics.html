@@ -19,6 +19,9 @@
   .desc{color:var(--sub);font-size:13px;margin:0 0 20px;line-height:1.6;}
   .panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:18px;}
   .ctrl-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .ctrl-row-1line{flex-wrap:nowrap;overflow-x:auto;}
+  .ctrl-row-1line>label,.ctrl-row-1line>button,.ctrl-row-1line>select{white-space:nowrap;flex:0 0 auto;}
+  .unsaved-banner{margin-top:10px;padding:8px 12px;border:1px solid #f6c9a8;background:#fff5ec;color:#9a3412;border-radius:8px;font-size:12.5px;font-weight:600;}
   .ctrl-row label{font-size:13px;color:var(--sub);}
   select,input[type=number],input[type=text]{font-size:14px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;font-family:inherit;}
   textarea{font-size:13px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-family:inherit;width:100%;resize:vertical;}
@@ -103,6 +106,7 @@
   .save-btn{font-size:13px;padding:8px 16px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-weight:600;cursor:pointer;margin-top:6px;}
   .save-btn:hover{opacity:.9;}
   .saved-flag{font-size:11.5px;color:var(--ok);margin-left:8px;}
+  .dirty-flag{font-size:11.5px;color:#c2410c;font-weight:600;margin-left:8px;}
 
   /* 입력 현황 표 */
   .status-table td, .status-table th{font-size:11.5px;padding:5px 4px;}
@@ -222,7 +226,7 @@
 </head>
 <body>
 <div class="wrap">
-  <h1 class="no-print">학교도서관 통계대장 자동계산 <span style="font-size:11px;font-weight:400;color:var(--sub);vertical-align:middle;">v1.0</span></h1>
+  <h1 class="no-print">학교도서관 통계대장 자동계산 <span style="font-size:11px;font-weight:400;color:var(--sub);vertical-align:middle;" id="appVersion">v2.260907151830</span></h1>
   <p class="desc no-print">
     독서로DLS에서 내려받은 반출 파일을 업로드하고, DLS에 없는 항목(활용수업·행사·자원봉사·기타업무 등)만 직접 입력하면
     나머지는 자동으로 계산되어 학교도서관 통계대장 서식 그대로 출력됩니다. 업로드한 파일과 입력한 내용은 서버로 전송되지 않고
@@ -321,6 +325,7 @@
         <label for="manualMonth">입력할 월</label>
         <select id="manualMonth"></select>
         <span class="saved-flag" id="manualSavedFlag" hidden>저장됨</span>
+        <span class="dirty-flag" id="manualDirtyFlag" hidden>● 저장 안 됨 — "이 달 저장"을 눌러야 반영됩니다</span>
       </div>
       <div class="form-grid">
         <div class="form-box">
@@ -402,14 +407,16 @@
   <!-- ===================== STEP 2: 기준월 · 배율 · 출력 ===================== -->
   <div class="panel no-print">
     <h2 class="step-title"><span class="step-num">2</span> 기준월 선택 및 출력</h2>
-    <div class="ctrl-row">
+    <div class="ctrl-row ctrl-row-1line">
       <label for="baseMonth">기준일(월말)</label>
       <select id="baseMonth"></select>
-      <button class="print-btn" id="printBtn">인쇄 미리보기 (A4 가로, 1장)</button>
-      <button class="ghost-btn" id="xlsxStyledBtn">엑셀 저장 (서식 포함)</button>
-      <button class="ghost-btn" id="xlsxPlainBtn">엑셀 저장 (값만)</button>
-      <button class="ghost-btn danger" id="reportBtn" type="button">⚠ 오류 신고 / 개선 제안</button>
+      <button class="print-btn" id="printBtn" title="인쇄 미리보기 (A4 가로, 1장)">인쇄</button>
+      <button class="ghost-btn" id="xlsxStyledBtn" title="엑셀 저장 (서식 포함, 3월~기준월 시트별)">엑셀(서식)</button>
+      <button class="ghost-btn" id="xlsxPlainBtn" title="엑셀 저장 (값만, 3월~기준월 시트별)">엑셀(값만)</button>
+      <button class="ghost-btn danger" id="reportBtn" type="button" title="오류 신고 / 개선 제안">⚠ 오류 신고</button>
     </div>
+    <div id="unsavedBanner" class="unsaved-banner" hidden></div>
+    <p class="note" style="margin:8px 0 0;">엑셀 저장은 <b>해당 학년도 3월부터 위에서 고른 기준월까지</b>를 <b>03·04·05…</b> 시트로 나눠 한 파일에 담습니다. 저장할 때마다 모든 달을 현재 데이터로 다시 만들므로, 지난 달 값을 고쳐도 그 시트가 예전 값으로 남지 않습니다.</p>
     <p class="note" style="margin-top:6px;margin-bottom:0;">인쇄는 <b>A4 가로 1장</b> 고정입니다. 인쇄 대화상자에서 "배경 그래픽"을 켜야 노란 음영이 함께 나옵니다.
     엑셀 저장은 두 가지입니다 — <b>서식 포함</b>은 셀 병합·테두리(실선/점선/이중선)·노란 음영·열 폭·인쇄 설정까지 통계대장 모양 그대로 만들고(인터넷 연결 필요),
     <b>값만</b>은 병합과 열 폭만 넣은 가벼운 파일로 만듭니다.</p>
@@ -495,6 +502,9 @@
 </div>
 
 <script>
+/* ===================== 프로그램 버전 ===================== */
+const APP_VERSION = '2.260907155600';
+
 /* ===================== 원자료 저장소 (업로드·수기입력으로 채워짐) ===================== */
 const SUBJ11 = ['총류','철학','종교','사회과학','자연과학','기술과학','예술','언어','문학','역사','기타'];
 const SUBJ10 = ['총류','철학','종교','사회과학','자연과학','기술과학','예술','언어','문학','역사'];
@@ -612,10 +622,16 @@ function latestOnOrBefore(store, ym){
   return keys.length ? store[keys[keys.length-1]] : null;
 }
 
-function findMissing(months){
+// 소장자료(관리통계)는 구입·제적폐기 등 "변화가 있었던 달"만 반출 파일에 값이 생성되므로,
+// 중간에 값이 없는 달이 있는 것은 오류가 아니라 정상이다(그 달은 변화가 없었다는 뜻).
+// 게다가 장서현황 누계는 여러 달을 더하는 값이 아니라 기준월 시점의 소장수(스냅샷)를 그대로 쓰므로,
+// 값이 없는 달이 있어도 누계에서 빠지는 것이 없다 → 결측월을 경고하지 않는다.
+// 다만 기준월까지 소장자료가 한 번도 들어오지 않아 장서현황 자체를 만들 수 없을 때만 따로 알린다.
+function findMissing(months, ym){
   const noBaseline = (store,k) => !store[k] && !latestOnOrBefore(store,k);
   return {
-    관리통계: months.filter(k=> noBaseline(MONO,k) || noBaseline(NONBOOK,k)),
+    관리통계: [],
+    관리통계없음: !!ym && (noBaseline(MONO,ym) || noBaseline(NONBOOK,ym)),
     대출: months.filter(k=>!LOAN_USER[k] || !LOAN_SUBJ[k]),
     기타입력: months.filter(k=>!ETC[k]),
   };
@@ -624,7 +640,7 @@ function findMissing(months){
 function calc(ym){
   const [y,m] = ym.split('-').map(Number);
   const months = monthsFromMarch(y,m);
-  const missing = findMissing(months);
+  const missing = findMissing(months, ym);
 
   const monoY = MONO[ym], nbY = NONBOOK[ym];
   const monoCF = monoY || latestOnOrBefore(MONO, ym);
@@ -642,10 +658,12 @@ function calc(ym){
   let 이용자_월계_관외, 이용자_월계_관내;
   if (lu){
     const extStd = sumArr(GRADES.map(g=>lu[g]));
-    이용자_월계_관외 = {학생:extStd, 교사:lu.교사, 학부모:lu.학부모, 기타:lu.기타, 계:extStd+lu.교사+lu.학부모+lu.기타};
+    // 통계대장 서식에는 '지역주민' 칸이 없으므로 '기타'에 합산한다(예전에는 읽고도 버려져 누락됐음).
+    const luEtc = (lu.기타||0) + (lu.지역주민||0);
+    이용자_월계_관외 = {학생:extStd, 교사:lu.교사, 학부모:lu.학부모, 기타:luEtc, 계:extStd+lu.교사+lu.학부모+luEtc};
     이용자_월계_관내 = {
       학생:xlRound(extStd*ratio), 교사:xlRound(lu.교사*ratio),
-      학부모:xlRound(lu.학부모*ratio), 기타:xlRound(lu.기타*ratio),
+      학부모:xlRound(lu.학부모*ratio), 기타:xlRound(luEtc*ratio),
     };
     이용자_월계_관내.계 = 이용자_월계_관내.학생+이용자_월계_관내.교사+이용자_월계_관내.학부모+이용자_월계_관내.기타;
   } else {
@@ -661,9 +679,10 @@ function calc(ym){
     const r = LOAN_USER[k]; if(!r) return;
     const rr = effRatio(k);
     const es = sumArr(GRADES.map(g=>r[g]));
-    cumExt.학생+=es; cumExt.교사+=r.교사; cumExt.학부모+=r.학부모; cumExt.기타+=r.기타;
+    const rEtc = (r.기타||0) + (r.지역주민||0);
+    cumExt.학생+=es; cumExt.교사+=r.교사; cumExt.학부모+=r.학부모; cumExt.기타+=rEtc;
     cumIn.학생+=xlRound(es*rr); cumIn.교사+=xlRound(r.교사*rr);
-    cumIn.학부모+=xlRound(r.학부모*rr); cumIn.기타+=xlRound(r.기타*rr);
+    cumIn.학부모+=xlRound(r.학부모*rr); cumIn.기타+=xlRound(rEtc*rr);
   });
   cumExt.계 = cumExt.학생+cumExt.교사+cumExt.학부모+cumExt.기타;
   cumIn.계 = cumIn.학생+cumIn.교사+cumIn.학부모+cumIn.기타;
@@ -814,14 +833,16 @@ function renderEtcTable(r){
 function renderMissingBanner(r){
   const on = document.getElementById('missingBanner');
   const pr = document.getElementById('missingBannerPrint');
+  const msgs = [];
+  // 달마다 더해서 누계를 내는 항목만 "제외되었습니다"로 알린다(소장자료는 스냅샷이라 해당 없음).
   const parts = [];
-  if (r.missing.관리통계.length) parts.push(`소장자료(관리통계): ${r.missing.관리통계.join(', ')}`);
   if (r.missing.대출.length) parts.push(`대출통계: ${r.missing.대출.join(', ')}`);
   if (r.missing.기타입력.length) parts.push(`수기입력(활용수업·행사·자원봉사 등): ${r.missing.기타입력.join(', ')}`);
-  if (parts.length === 0){ on.hidden = true; pr.hidden = true; return; }
-  const msg = `⚠ 학년도 누계에서 다음 월 자료가 없어 제외되었습니다 — ${parts.join(' / ')}`;
-  on.hidden = false; on.innerHTML = `<span class="badge warn">${msg}</span>`;
-  pr.hidden = false; pr.textContent = msg;
+  if (parts.length) msgs.push(`⚠ 학년도 누계에서 다음 월 자료가 없어 제외되었습니다 — ${parts.join(' / ')}`);
+  if (r.missing.관리통계없음) msgs.push('⚠ 기준월까지 소장자료(관리통계) 반출 파일이 한 번도 반영되지 않아 장서현황이 비어 있습니다.');
+  if (msgs.length === 0){ on.hidden = true; pr.hidden = true; return; }
+  on.hidden = false; on.innerHTML = msgs.map(m=>`<span class="badge warn">${m}</span>`).join(' ');
+  pr.hidden = false; pr.textContent = msgs.join('  ');
 }
 
 function allDataMonths(){
@@ -986,9 +1007,40 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
 });
 
 /* ===================== 월별 수기입력 폼 ===================== */
-function loadManualForm(){
+let manualDirty = false;          // 저장하지 않은 수기입력이 있는지
+let manualPrevMonth = null;       // 월 전환 취소용
+
+// 수기입력은 "이 달 저장"을 눌러야만 계산에 반영된다. 예전에는 이 경고가 ①단계 탭 안에만 있어
+// ②단계·출력 화면에서는 보이지 않았고, 입력해 둔 값이 반영 안 된 채 출력이 옛 값으로 남는 일이 있었다.
+function syncDirtyBanner(){
+  const flag = document.getElementById('manualDirtyFlag');
+  if (flag) flag.hidden = !manualDirty;
+  const el = document.getElementById('unsavedBanner');
+  if (!el) return;
+  if (!manualDirty){ el.hidden = true; el.textContent = ''; return; }
+  const ym = document.getElementById('manualMonth').value || '';
+  const [yy,mm] = ym.split('-');
+  el.hidden = false;
+  el.textContent = `● ${yy}년 ${Number(mm)}월 수기입력이 아직 저장되지 않았습니다 — ①단계 "월별 수기입력" 탭에서 "이 달 저장"을 눌러야 아래 출력과 엑셀에 반영됩니다.`;
+}
+window.addEventListener('beforeunload', (e)=>{
+  if (!manualDirty) return;
+  e.preventDefault(); e.returnValue = '';
+});
+// 같은 프로그램을 다른 탭·창에서 함께 열어 두면 자동저장이 서로를 덮어써 값이 옛 것으로 되돌아갈 수 있다.
+window.addEventListener('storage', (e)=>{
+  if (e.key !== STORE_KEY) return;
+  const el = document.getElementById('unsavedBanner');
+  if (!el) return;
+  el.hidden = false;
+  el.textContent = '● 이 프로그램이 다른 탭·창에서도 열려 있어 자동저장이 서로 덮어쓰고 있습니다 — 다른 창을 닫고 이 화면을 새로고침해 주세요.';
+});
+
+function loadManualForm(force){
   const ym = document.getElementById('manualMonth').value;
   const e = ETC[ym] || {};
+  // 저장하지 않은 입력이 남아 있으면 화면 갱신(render) 때 값을 덮어쓰지 않는다.
+  if (force || !manualDirty){
   document.getElementById('m-classCnt').value = e.횟수 ?? '';
   document.getElementById('m-classPeo').value = e.인원수 ?? '';
   document.getElementById('m-classNote').value = e.수업내용 ?? '';
@@ -1004,6 +1056,10 @@ function loadManualForm(){
   document.getElementById('m-etcWork').value = e.기타업무 ?? '';
   document.getElementById('m-remark').value = e.비고 ?? '';
   document.getElementById('manualSavedFlag').hidden = true;
+  manualDirty = false;
+  }
+  manualPrevMonth = ym;
+  syncDirtyBanner();
 
   const rOn = (SETTINGS.ratioMode === 'monthly');
   const sOn = (SETTINGS.subjRatioMode === 'monthly');
@@ -1016,7 +1072,27 @@ function loadManualForm(){
     + `이용자료 관내추정 배율: ${MODE_LABEL[SETTINGS.subjRatioMode]}${SETTINGS.subjRatioMode==='none'?'':' / 기본 '+SETTINGS.subjRatioFixed}. `
     + `바꾸려면 위 "환경설정" 탭으로 이동하세요.`;
 }
-document.getElementById('manualMonth').addEventListener('change', loadManualForm);
+document.getElementById('manualMonth').addEventListener('change', ()=>{
+  if (manualDirty && !confirm('저장하지 않은 입력이 있습니다. 저장하지 않고 다른 달로 이동할까요?')){
+    document.getElementById('manualMonth').value = manualPrevMonth;
+    return;
+  }
+  manualDirty = false;
+  loadManualForm(true);
+  syncDirtyBanner();
+});
+
+['m-classCnt','m-classPeo','m-classNote','m-evStd','m-evPar','m-evEtc','m-evNote',
+ 'm-volStd','m-volPar','m-openDays','m-ratio','m-subjRatio','m-etcWork','m-remark'
+].forEach(id=>{
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener('input', ()=>{
+    manualDirty = true;
+    document.getElementById('manualSavedFlag').hidden = true;
+    syncDirtyBanner();
+  });
+});
 
 document.getElementById('manualSaveBtn').addEventListener('click', ()=>{
   const ym = document.getElementById('manualMonth').value;
@@ -1035,9 +1111,13 @@ document.getElementById('manualSaveBtn').addEventListener('click', ()=>{
     비율: ratio, 자료배율: subjRatio,
   };
   SOURCE[ym] = SOURCE[ym] || {}; SOURCE[ym].etc = 'manual';
+  manualDirty = false;
   rebuildBaseMonthOptions();
+  document.getElementById('manualMonth').value = ym;   // 목록 재구성 후에도 편집 중이던 달을 유지
   render();
+  loadManualForm(true);
   document.getElementById('manualSavedFlag').hidden = false;
+  syncDirtyBanner();
 });
 
 /* ===================== 엑셀 업로드 · 파싱 ===================== */
@@ -1064,6 +1144,10 @@ function normMonth(v){
     if (m) return `${m[1]}-${String(+m[2]).padStart(2,'0')}`;
   }
   return null;
+}
+// 반출 파일에 "합계/소계/계" 같은 요약 행이 섞여 있으면 월별 값에 이중으로 더해지므로 걸러낸다.
+function isSummaryRow(row){
+  return (row||[]).slice(0,2).some(v=>/^(합\s*계|소\s*계|총\s*계|계)$/.test(String(v??'').trim()));
 }
 function toNum(v){
   if (v===null||v===undefined||v==='') return 0;
@@ -1121,9 +1205,12 @@ function parseLoanUserReport(rows){
   for(let i=headerIdx+1;i<rows.length;i++){
     const row=rows[i]; if(!row) continue;
     const ym = normMonth(row[monthCol]); if(!ym) continue;
+    if (isSummaryRow(row)) continue;
     const rec = {교사:toNum(row[cTeacher]), 학부모:cParent>=0?toNum(row[cParent]):0, 지역주민:cLocal>=0?toNum(row[cLocal]):0, 기타:cEtc>=0?toNum(row[cEtc]):0};
     GRADES.forEach((g,idx)=>{ rec[g] = gradeCols[idx]>=0?toNum(row[gradeCols[idx]]):0; });
-    result[ym]=rec;
+    // 같은 달이 여러 행으로 나뉘어 나오는 반출 파일이 있어, 덮어쓰지 않고 더한다(예전에는 마지막 행만 남아 값이 작아졌음).
+    if (result[ym]) Object.keys(rec).forEach(k=> result[ym][k] = (result[ym][k]||0) + rec[k]);
+    else result[ym] = rec;
   }
   if (!Object.keys(result).length) throw new Error('월별 데이터를 찾지 못했습니다.');
   return result;
@@ -1140,7 +1227,9 @@ function parseLoanSubjReport(rows){
   for(let i=headerIdx+1;i<rows.length;i++){
     const row=rows[i]; if(!row) continue;
     const ym = normMonth(row[monthCol]); if(!ym) continue;
-    result[ym] = cols.map(c=>c>=0?toNum(row[c]):0);
+    if (isSummaryRow(row)) continue;
+    const vals = cols.map(c=>c>=0?toNum(row[c]):0);
+    result[ym] = result[ym] ? result[ym].map((v,i)=>v+vals[i]) : vals;
   }
   if (!Object.keys(result).length) throw new Error('월별 데이터를 찾지 못했습니다.');
   return result;
@@ -1251,6 +1340,7 @@ function snapshot(){
   return {
     app: '학교도서관 통계대장 자동계산',
     version: 1,
+    appVersion: APP_VERSION,
     savedAt: new Date().toISOString(),
     schoolYear: document.getElementById('schoolYear').value,
     baseMonth: document.getElementById('baseMonth').value,
@@ -1298,7 +1388,7 @@ function downloadBlob(blob, filename){
 function saveJsonFile(){
   const sy = document.getElementById('schoolYear').value || '';
   const blob = new Blob([JSON.stringify(snapshot(), null, 2)], {type:'application/json;charset=utf-8'});
-  downloadBlob(blob, `학교도서관통계_${sy}학년도_설정및입력값.json`);
+  downloadBlob(blob, `학교도서관통계_${sy}학년도_설정및입력값_v${APP_VERSION}.json`);
 }
 function loadJsonFile(file){
   const fr = new FileReader();
@@ -1323,6 +1413,27 @@ const XL_SCALE = 0.92;       // 1197px(=277mm) → 96dpi 픽셀 환산(0.8747)�
                              // 인쇄는 '한 페이지 맞춤'으로 원래 비율(A4 가로 1장)에 맞춰 축소되게 함.
 const XL_FONT = { name:'맑은 고딕', size:10 };
 
+// 내보낼 월 목록: 해당 학년도 3월 ~ 화면에서 고른 기준월까지
+function exportMonthList(){
+  const ym = document.getElementById('baseMonth').value;
+  if (!ym) return [];
+  const [y,m] = ym.split('-').map(Number);
+  return monthsFromMarch(y, m);
+}
+// 시트명: '03','04',...
+function sheetNameOf(ym){ return ym.split('-')[1]; }
+// 파일명: 학교도서관 통계대장_2026학년도_03-08월_v2.xxxx[_값만].xlsx
+function excelFileName(list, suffix){
+  const last = list[list.length-1];
+  const sy = schoolYearOfMonth(last);
+  const first = list[0];
+  const a = sheetNameOf(first), b = sheetNameOf(last);
+  const range = (a===b) ? `${a}월`
+    : (first.slice(0,4)===last.slice(0,4)) ? `${a}-${b}월`
+    : `${first.replace('-','.')}-${last.replace('-','.')}`;   // 학년도가 해를 넘길 때(예: 2026.03-2027.01)
+  return `학교도서관 통계대장_${sy}학년도_${range}_v${APP_VERSION}${suffix||''}.xlsx`;
+}
+
 function xlData(ym){
   const [y,m] = ym.split('-').map(Number);
   const lastDay = new Date(y, m, 0).getDate();
@@ -1331,16 +1442,11 @@ function xlData(ym){
   return {y, m, lastDay, r, dash};
 }
 
-async function exportExcelStyled(){
-  if (typeof ExcelJS === 'undefined'){
-    alert('서식 포함 저장에 필요한 라이브러리(ExcelJS)를 불러오지 못했습니다.\n인터넷 연결을 확인하시거나 "엑셀 저장 (값만)"을 이용해주세요.');
-    return;
-  }
-  const ym = document.getElementById('baseMonth').value; if(!ym) return;
+// 통합문서 하나에 '한 달 = 한 시트'로 붙인다.
+function buildStyledSheet(wb, ym){
   const {y, m, lastDay, r, dash} = xlData(ym);
 
-  const wb = new ExcelJS.Workbook();
-  const ws = wb.addWorksheet('출력', {
+  const ws = wb.addWorksheet(sheetNameOf(ym), {
     views:[{showGridLines:false}],
     pageSetup:{ paperSize:9, orientation:'landscape', fitToPage:true, fitToWidth:1, fitToHeight:1,
                 horizontalCentered:true,
@@ -1509,14 +1615,23 @@ async function exportExcelStyled(){
   volRow(29,'월  계', r.기타_월계);
   volRow(30,'누  계', r.기타_누계);
   frame(27,1,30,18,{ solidV:[4] });
-
-  const buf = await wb.xlsx.writeBuffer();
-  downloadBlob(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),
-               `학교도서관 통계대장_${y}-${String(m).padStart(2,'0')}.xlsx`);
 }
 
-function exportExcelPlain(){
-  const ym = document.getElementById('baseMonth').value; if(!ym) return;
+async function exportExcelStyled(){
+  if (typeof ExcelJS === 'undefined'){
+    alert('서식 포함 저장에 필요한 라이브러리(ExcelJS)를 불러오지 못했습니다.\n인터넷 연결을 확인하시거나 "엑셀 저장 (값만)"을 이용해주세요.');
+    return;
+  }
+  const list = exportMonthList();
+  if (!list.length){ alert('기준월을 먼저 고르세요.'); return; }
+  const wb = new ExcelJS.Workbook();
+  list.forEach(k => buildStyledSheet(wb, k));   // 3월~기준월 전체를 지금 데이터로 다시 만든다
+  const buf = await wb.xlsx.writeBuffer();
+  downloadBlob(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),
+               excelFileName(list, ''));
+}
+
+function buildPlainSheet(ym){
   const {y, m, lastDay, r, dash} = xlData(ym);
   const A = []; for (let i=0;i<30;i++) A.push(new Array(18).fill(null));
   const set = (row,col,v)=>{ A[row-1][col-1] = (v===undefined?null:v); };
@@ -1578,9 +1693,15 @@ function exportExcelPlain(){
     M(22,9,22,18), M(23,13,23,14), M(23,15,23,18), M(24,13,24,14), M(25,13,25,14), M(24,15,25,18),
     M(26,1,26,6), M(27,1,28,1), M(27,2,27,4), M(27,5,27,18), M(28,5,30,18)
   ];
+  return ws;
+}
+
+function exportExcelPlain(){
+  const list = exportMonthList();
+  if (!list.length){ alert('기준월을 먼저 고르세요.'); return; }
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, '출력');
-  XLSX.writeFile(wb, `학교도서관 통계대장_${y}-${String(m).padStart(2,'0')}_값만.xlsx`);
+  list.forEach(k => XLSX.utils.book_append_sheet(wb, buildPlainSheet(k), sheetNameOf(k)));
+  XLSX.writeFile(wb, excelFileName(list, '_값만'));
 }
 
 /* ===================== 초기화 ===================== */
@@ -1617,6 +1738,7 @@ document.getElementById('loadJsonInput').addEventListener('change', e=>{
   e.target.value = '';
 });
 
+document.getElementById('appVersion').textContent = 'v' + APP_VERSION;
 wireSettings();
 syncSettingsUI();
 rebuildBaseMonthOptions();
