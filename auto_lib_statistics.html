@@ -871,9 +871,18 @@ function renderRatioCompare(r){
     return;
   }
   const rows = SUBJ11.map((name,i)=>{
-    const actual = total[i] / grand * 100;
+    const count = total[i];
+    const actual = count / grand * 100;
     const rec = RECOMMENDED_RATIO[name];
-    return { name, actual, rec, diff: (rec===undefined) ? null : actual-rec };
+    const diff = (rec===undefined) ? null : actual-rec;
+    // 다른 분류는 그대로 두고 이 분류만 구입해 목표 비율(p)에 맞추는 데 필요한 권수:
+    // (count+x)/(grand+x) = p  →  x = (p*grand - count) / (1-p)
+    let need = null;
+    if (rec!==undefined && diff<0){
+      const p = rec/100;
+      need = Math.ceil((p*grand - count) / (1-p));
+    }
+    return { name, actual, rec, diff, need };
   });
   const diffCell = d => {
     if (d===null) return '<td style="text-align:right;color:var(--sub);">권장 없음</td>';
@@ -881,17 +890,22 @@ function renderRatioCompare(r){
     const style = Math.abs(d)<3 ? '' : (d>0 ? 'color:var(--accent);font-weight:700;' : 'color:#b91c1c;font-weight:700;');
     return `<td style="text-align:right;${style}">${sign}${d.toFixed(1)}%p</td>`;
   };
+  const needCell = n => (n===null || n<=0)
+    ? '<td style="text-align:right;color:var(--sub);">-</td>'
+    : `<td style="text-align:right;font-weight:700;">${n.toLocaleString('ko-KR')}권</td>`;
   const body = rows.map(row => `<tr>
       <th style="text-align:left;">${row.name}</th>
       <td style="text-align:right;">${row.rec===undefined ? '-' : row.rec+'%'}</td>
       <td style="text-align:right;">${row.actual.toFixed(1)}%</td>
       ${diffCell(row.diff)}
+      ${needCell(row.need)}
     </tr>`).join('');
   box.innerHTML = `<div class="table-scroll"><table class="status-table" style="width:100%;">
-      <thead><tr><th style="text-align:left;">분류</th><th style="text-align:right;">권장 비율</th><th style="text-align:right;">현재 비율</th><th style="text-align:right;">차이</th></tr></thead>
+      <thead><tr><th style="text-align:left;">분류</th><th style="text-align:right;">권장 비율</th><th style="text-align:right;">현재 비율</th><th style="text-align:right;">차이</th><th style="text-align:right;">구입 필요 권수</th></tr></thead>
       <tbody>${body}</tbody>
     </table></div>
-    <p class="note" style="margin-bottom:0;">차이는 <b>현재 비율 − 권장 비율</b>입니다(양수는 권장보다 많이 보유, 음수는 부족). ±3%p 이내는 색 표시 없이 참고만 하시면 됩니다.</p>`;
+    <p class="note" style="margin-bottom:0;">차이는 <b>현재 비율 − 권장 비율</b>입니다(양수는 권장보다 많이 보유, 음수는 부족). ±3%p 이내는 색 표시 없이 참고만 하시면 됩니다.
+    "구입 필요 권수"는 다른 분류는 그대로 두고 <b>이 분류만 추가로 구입</b>했을 때 권장 비율에 도달하는 데 필요한 권수(올림)이며, 실제로는 여러 분류를 같이 구입하는 경우가 많아 참고용입니다.</p>`;
 }
 
 function allDataMonths(){
