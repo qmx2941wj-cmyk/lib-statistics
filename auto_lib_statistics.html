@@ -491,6 +491,13 @@
     </section>
   </div>
 
+  <!-- ===================== 참고: 장서 구성비 비교(화면 전용, 통계대장 서식에는 포함 안 됨) ===================== -->
+  <div class="panel no-print" id="ratioComparePanel">
+    <h2 class="step-title">📚 장서 구성비 비교 (참고용)</h2>
+    <p class="note" style="margin-top:0;">기준월 시점 누계(도서+비도서 합계) 기준으로, 초등학교 학교도서관 권장 구성비와 비교한 값입니다. 통계대장 출력·엑셀 저장에는 포함되지 않고 이 화면에서만 확인할 수 있습니다.</p>
+    <div id="ratioCompareBox"></div>
+  </div>
+
   <footer class="no-print">
     <p style="margin:0 0 10px;">
       학교·학년도에 상관없이 그대로 쓸 수 있습니다. 업로드한 DLS 반출 파일과 입력한 내용은 <b>서버로 전송되지 않고</b> 이 브라우저 안에서만 처리되며,
@@ -509,6 +516,10 @@ const APP_VERSION = '2.260907155600';
 const SUBJ11 = ['총류','철학','종교','사회과학','자연과학','기술과학','예술','언어','문학','역사','기타'];
 const SUBJ10 = ['총류','철학','종교','사회과학','자연과학','기술과학','예술','언어','문학','역사'];
 const GRADES = ['1학년','2학년','3학년','4학년','5학년','6학년'];
+
+// 초등학교 학교도서관 장서 구성 권장 비율(참고용). 사용자 제공값(철학~역사 9개 항목, 95%)에
+// 총류(000) 5%를 더해 정확히 100%로 맞춤. '기타'(미분류)는 권장 기준이 없어 포함하지 않음.
+const RECOMMENDED_RATIO = { 총류:5, 철학:3, 종교:3, 사회과학:9, 자연과학:15, 기술과학:9, 예술:6, 언어:3, 문학:30, 역사:17 };
 
 // 실제로 계산에 쓰이는 저장소. 처음엔 비어 있고, 파일 업로드·수기입력으로 채워짐(특정 학교·학년도로 고정돼 있지 않음).
 const MONO = {}, NONBOOK = {}, LOAN_USER = {}, LOAN_SUBJ = {}, ETC = {};
@@ -845,6 +856,44 @@ function renderMissingBanner(r){
   pr.hidden = false; pr.textContent = msgs.join('  ');
 }
 
+// 참고용 화면 전용 비교표: 통계대장 서식(printArea)과 무관하게 별도 패널에 그림.
+function renderRatioCompare(r){
+  const box = document.getElementById('ratioCompareBox');
+  if (!box) return;
+  if (r.missing.관리통계없음){
+    box.innerHTML = '<p class="note" style="margin:0;">소장자료(관리통계) 값이 아직 없어 비교할 수 없습니다.</p>';
+    return;
+  }
+  const total = SUBJ11.map((_,i)=> (r.장서_누계_도서[i]||0) + (r.장서_누계_비도서[i]||0));
+  const grand = sumArr(total);
+  if (!grand){
+    box.innerHTML = '<p class="note" style="margin:0;">소장 수량이 0이라 비교할 수 없습니다.</p>';
+    return;
+  }
+  const rows = SUBJ11.map((name,i)=>{
+    const actual = total[i] / grand * 100;
+    const rec = RECOMMENDED_RATIO[name];
+    return { name, actual, rec, diff: (rec===undefined) ? null : actual-rec };
+  });
+  const diffCell = d => {
+    if (d===null) return '<td style="text-align:right;color:var(--sub);">권장 없음</td>';
+    const sign = d>0 ? '+' : '';
+    const style = Math.abs(d)<3 ? '' : (d>0 ? 'color:var(--accent);font-weight:700;' : 'color:#b91c1c;font-weight:700;');
+    return `<td style="text-align:right;${style}">${sign}${d.toFixed(1)}%p</td>`;
+  };
+  const body = rows.map(row => `<tr>
+      <th style="text-align:left;">${row.name}</th>
+      <td style="text-align:right;">${row.rec===undefined ? '-' : row.rec+'%'}</td>
+      <td style="text-align:right;">${row.actual.toFixed(1)}%</td>
+      ${diffCell(row.diff)}
+    </tr>`).join('');
+  box.innerHTML = `<div class="table-scroll"><table class="status-table" style="width:100%;">
+      <thead><tr><th style="text-align:left;">분류</th><th style="text-align:right;">권장 비율</th><th style="text-align:right;">현재 비율</th><th style="text-align:right;">차이</th></tr></thead>
+      <tbody>${body}</tbody>
+    </table></div>
+    <p class="note" style="margin-bottom:0;">차이는 <b>현재 비율 − 권장 비율</b>입니다(양수는 권장보다 많이 보유, 음수는 부족). ±3%p 이내는 색 표시 없이 참고만 하시면 됩니다.</p>`;
+}
+
 function allDataMonths(){
   return Array.from(new Set([...Object.keys(MONO),...Object.keys(NONBOOK),...Object.keys(LOAN_USER),...Object.keys(LOAN_SUBJ),...Object.keys(ETC)]));
 }
@@ -986,6 +1035,7 @@ function render(){
   renderEtcTable(r);
   renderMissingBanner(r);
   renderStatusTable();
+  renderRatioCompare(r);
 
   const rTxt = (SETTINGS.ratioMode==='none') ? '미적용' : `${r.현재배율} (${MODE_LABEL[SETTINGS.ratioMode]})`;
   const sTxt = (SETTINGS.subjRatioMode==='none') ? '미적용' : `${r.현재자료배율} (${MODE_LABEL[SETTINGS.subjRatioMode]})`;
