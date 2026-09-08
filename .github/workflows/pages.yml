@@ -1,0 +1,55 @@
+name: Deploy Pages (master + dev)
+
+on:
+  push:
+    branches: [master, dev]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout master (production, served at /)
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          path: _master
+
+      - name: Checkout dev (experimental, served at /dev/)
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+          path: _dev
+
+      - name: Assemble combined site
+        run: |
+          set -e
+          mkdir -p _site
+          rsync -a --exclude='.git' --exclude='.github' _master/ _site/
+          mkdir -p _site/dev
+          rsync -a --exclude='.git' --exclude='.github' _dev/ _site/dev/
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
